@@ -11,6 +11,7 @@ import { WelcomeComponent } from './welcome/welcome.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { SearchResultListComponent } from './search-result-list/search-result-list.component';
+import { MessageDialogComponent } from './shared/components/message-dialog/message-dialog.component';
 
 @NgModule({
   declarations: [
@@ -18,6 +19,7 @@ import { SearchResultListComponent } from './search-result-list/search-result-li
     SearchFormComponent,
     WelcomeComponent,
     SearchResultListComponent,
+    MessageDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -31,6 +33,8 @@ import { SearchResultListComponent } from './search-result-list/search-result-li
   ],
   exports: [
     SearchFormComponent,
+    SearchResultListComponent,
+    MessageDialogComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

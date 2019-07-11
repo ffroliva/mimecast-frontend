@@ -7,6 +7,9 @@ import { ServerService } from '../service/server.service';
 import { FileSearchService } from '../service/file-search.service';
 import { SearchResponseModel } from '../model/search-response.model';
 import { SearchRequestModel } from '../model/search-request.model';
+import { MatDialog } from '@angular/material';
+import { MessageDialogComponent } from '../shared/components/message-dialog/message-dialog.component';
+import { ApiErrorModel } from '../shared/model/api-error-model';
 
 @Component({
   selector: 'app-search-form',
@@ -27,7 +30,8 @@ export class SearchFormComponent implements OnInit {
   constructor(
     private formBuilder: FormBuilder,
     private serverService: ServerService,
-    private fileSearchService: FileSearchService
+    private fileSearchService: FileSearchService,
+    public dialog: MatDialog,
   ) {}
 
   ngOnInit() {
@@ -57,9 +61,10 @@ export class SearchFormComponent implements OnInit {
         (searchResult: SearchResponseModel[]) => {
           this.searchResultChanged.emit(searchResult);
         },
-        (error: any) => {
+        (error: ApiErrorModel) => {
           error = error;
           console.log(error);
+          this.openDialog(error);
         }
       );
   }
@@ -69,5 +74,16 @@ export class SearchFormComponent implements OnInit {
     const rootPath = this.formGroup.controls.rootPath.value;
     const searchTerm = this.formGroup.controls.searchTerm.value;
     return SearchRequestModel.of(server, rootPath, searchTerm);
+  }
+
+  openDialog(error: ApiErrorModel): void {
+    const dialogRef = this.dialog.open(MessageDialogComponent, {
+      width: '250ipx',
+      data: error,
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed');
+    });
   }
 }
