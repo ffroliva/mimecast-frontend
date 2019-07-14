@@ -1,27 +1,57 @@
-# MimecastFrontend
+# Mimecast File Search Term app
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 8.0.1.
+## Installing node dependencies
 
-## Development server
+At the root path of the project run the following line: 
+```
+npm install
+```
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+## Running the app localhost
 
-## Code scaffolding
+To run the app at localhost execute `ng serve`.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+The app will be available at: `http://localhost:4200/`.
 
-## Build
+## Proxying the backend
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+This application depends on a spring-boot backend that by default is runs at: http://localhost:8080.
 
-## Running unit tests
+In order to overcome CORS problems between frontend and backend a proxy was configure at: `./src/proxy.conf.json`.
+```json
+{
+    "/api/*": {
+      "target": "http://localhost:8080",
+      "secure": false,
+      "logLevel": "debug",
+      "changeOrigin": true,
+      "pathRewrite": {
+        "^/api": ""
+      }
+    }
+  }
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
-## Running end-to-end tests
+## Building the backend
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+Maven is used as the project's build tool for the backend. 
 
-## Further help
+To build the backend run in the following command: `mvn clean install`.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+Make sure this command is execute inside the folder where the `pom.xml` is located.
+
+### Running the backend
+
+To run the backend execute: `mvn spring-boot:run` or if you prefer, import the `mimecast-backend` folder into your favorite IDE, and run the main method of the following class: `br.com.ffroliva.mimecast.MimecastApplication`
+
+## Overview of the app:
+
+The app is composed of two main components `search-form` and `search-result-list` that are wrapped into to a componet called `welcome`.
+
+The `search-form` component is responsable for collecting the inputs and submitting it to the request to `file-search-service`.
+
+The result of the then rendered as a list to the `file-result-list`.
+
+
+

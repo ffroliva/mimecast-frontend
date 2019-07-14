@@ -1,5 +1,5 @@
-import { ApiErrorModel } from './api-error-model';
+import { ErrorModel } from './error-model';
 
 export interface DialogData {
-  error: ApiErrorModel;
+  error: ErrorModel;
 }
