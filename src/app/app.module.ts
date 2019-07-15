@@ -11,6 +11,8 @@ import { WelcomeComponent } from './welcome/welcome.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { SearchResultListComponent } from './search-result-list/search-result-list.component';
+import { SharedModule } from './shared/shared.module';
+import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
 
 @NgModule({
   declarations: [
@@ -18,6 +20,7 @@ import { SearchResultListComponent } from './search-result-list/search-result-li
     SearchFormComponent,
     WelcomeComponent,
     SearchResultListComponent,
+    PageNotFoundComponent,
   ],
   imports: [
     BrowserModule,
@@ -28,9 +31,9 @@ import { SearchResultListComponent } from './search-result-list/search-result-li
     BrowserAnimationsModule,
     MaterialModule,
     FlexLayoutModule,
+    SharedModule,
   ],
   exports: [
-    SearchFormComponent,
   ],
   providers: [],
   bootstrap: [AppComponent]

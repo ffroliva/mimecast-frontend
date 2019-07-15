@@ -7,6 +7,8 @@ import { ServerService } from '../service/server.service';
 import { FileSearchService } from '../service/file-search.service';
 import { SearchResponseModel } from '../model/search-response.model';
 import { SearchRequestModel } from '../model/search-request.model';
+import { MatDialog } from '@angular/material';
+import { ErrorModel } from '../shared/model/error-model';
 
 @Component({
   selector: 'app-search-form',
@@ -14,20 +16,19 @@ import { SearchRequestModel } from '../model/search-request.model';
   styleUrls: ['./search-form.component.scss']
 })
 export class SearchFormComponent implements OnInit {
+
   servers$: Observable<string[]>;
-
   formGroup: FormGroup;
-
   loading: boolean;
-
-  error: any;
+  error: ErrorModel;
 
   @Output() searchResultChanged: EventEmitter<SearchResponseModel[]> = new EventEmitter();
 
   constructor(
     private formBuilder: FormBuilder,
     private serverService: ServerService,
-    private fileSearchService: FileSearchService
+    private fileSearchService: FileSearchService,
+    public dialog: MatDialog,
   ) {}
 
   ngOnInit() {
@@ -45,6 +46,7 @@ export class SearchFormComponent implements OnInit {
 
   search() {
     this.loading = true;
+    this.searchResultChanged.emit(null);
     const requestModel = this._createSerchRequestModel();
     console.log(requestModel);
     this.fileSearchService
@@ -57,7 +59,7 @@ export class SearchFormComponent implements OnInit {
         (searchResult: SearchResponseModel[]) => {
           this.searchResultChanged.emit(searchResult);
         },
-        (error: any) => {
+        (error: ErrorModel) => {
           error = error;
           console.log(error);
         }
@@ -70,4 +72,5 @@ export class SearchFormComponent implements OnInit {
     const searchTerm = this.formGroup.controls.searchTerm.value;
     return SearchRequestModel.of(server, rootPath, searchTerm);
   }
+
 }

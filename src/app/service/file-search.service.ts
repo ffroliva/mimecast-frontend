@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { SearchResponseModel } from '../model/search-response.model';
@@ -15,7 +15,10 @@ export class FileSearchService {
     ) { }
 
   search(searchRequestModel: SearchRequestModel): Observable<SearchResponseModel[]> {
-    return this.http.post<SearchResponseModel[]>('api/file/search', searchRequestModel);
+    const param = new HttpParams()
+    .set('rootPath', searchRequestModel.rootPath)
+    .set('searchTerm', searchRequestModel.searchTerm);
+    return this.http.get<SearchResponseModel[]>('api/file/search', { params: param });
   }
 
 }
