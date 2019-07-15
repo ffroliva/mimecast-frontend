@@ -1,5 +1,6 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { SearchResponseModel } from '../model/search-response.model';
+import { FileSearchService } from '../service/file-search.service';
 
 @Component({
   selector: 'app-search-result-list',
@@ -8,13 +9,19 @@ import { SearchResponseModel } from '../model/search-response.model';
 })
 export class SearchResultListComponent implements OnInit {
 
-  @Input()
-  dataSource: SearchResponseModel[];
+  dataSource: SearchResponseModel[] = [];
   displayedColumns: string[] = ['position', 'filePath', 'count'];
 
-  constructor() { }
+  constructor(private service: FileSearchService) {}
 
   ngOnInit() {
+    this.service.getSearchResult()
+    .subscribe(data => {
+      if ( data ) {
+        this.dataSource = this.dataSource.concat(data);
+        console.log(data);
+      }
+    });
   }
 
 }

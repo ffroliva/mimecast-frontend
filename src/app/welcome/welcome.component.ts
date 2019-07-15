@@ -1,24 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
-import { SearchResponseModel } from '../model/search-response.model';
 
 @Component({
   selector: 'app-welcome',
   templateUrl: './welcome.component.html',
   styleUrls: ['./welcome.component.scss']
 })
-export class WelcomeComponent implements OnInit {
+export class WelcomeComponent {
 
-  searchResult: SearchResponseModel[];
-
-  constructor() { }
-
-  ngOnInit() {
-  }
-
-  searchResultChanged(searchResult: SearchResponseModel[]) {
-    console.log('searchResultChanged', searchResult);
-    this.searchResult = searchResult;
-}
+  constructor( ) { }
 
 }

@@ -1,7 +1,7 @@
 <mat-card fxflex fxLayoutGap="16px" class="example-container">
     <mat-card-title>Search Form</mat-card-title>
     <mat-card-content>
-        <form class="example-container" [formGroup]="formGroup">
+        <form class="example-container" [formGroup]="formGroup" >
             <label id="example-radio-group-label">Pick a server to search:</label>
             <mat-radio-group aria-labelledby="example-radio-group-label" class="example-radio-group"
                 formControlName="server">
@@ -10,20 +10,17 @@
                     {{server}}
                 </mat-radio-button>
             </mat-radio-group>
-            <mat-error ></mat-error>
+            <mat-error></mat-error>
             <mat-form-field>
                 <input matInput formControlName="rootPath" placeholder="Path to search at selected server" required>
-
             </mat-form-field>
-
             <mat-form-field>
                 <input matInput formControlName="searchTerm" placeholder="Search term" required>
-
             </mat-form-field>
         </form>
     </mat-card-content>
     <mat-card-actions>
-        <button mat-raised-button color="primary" (click)="search()" [disabled]="formGroup.invalid" >SEARCH</button>
+        <button mat-raised-button color="primary" (click)="search($event)" [disabled]="formGroup.invalid">SEARCH</button>
     </mat-card-actions>
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 </mat-card>

@@ -1,39 +1,44 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
-import { finalize, take } from 'rxjs/operators';
-
-import { ServerService } from '../service/server.service';
-import { FileSearchService } from '../service/file-search.service';
-import { SearchResponseModel } from '../model/search-response.model';
+import { Observable, Subscription } from 'rxjs';
 import { SearchRequestModel } from '../model/search-request.model';
-import { MatDialog } from '@angular/material';
-import { ErrorModel } from '../shared/model/error-model';
+import { SearchResponseModel } from '../model/search-response.model';
+import { FileSearchService } from '../service/file-search.service';
+import { ServerService } from '../service/server.service';
+
 
 @Component({
   selector: 'app-search-form',
   templateUrl: './search-form.component.html',
   styleUrls: ['./search-form.component.scss']
 })
-export class SearchFormComponent implements OnInit {
-
+export class SearchFormComponent implements OnInit, OnDestroy {
   servers$: Observable<string[]>;
-  formGroup: FormGroup;
-  loading: boolean;
-  error: ErrorModel;
 
-  @Output() searchResultChanged: EventEmitter<SearchResponseModel[]> = new EventEmitter();
+  formGroup: FormGroup;
+  error: any;
+  subscription: Subscription;
+  loading = false;
 
   constructor(
     private formBuilder: FormBuilder,
     private serverService: ServerService,
     private fileSearchService: FileSearchService,
-    public dialog: MatDialog,
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.servers$ = this.serverService.getServers();
     this.createForm();
+    this.subscription = this.fileSearchService.getSearchResult().subscribe(data => {
+      if (!data) {
+        console.log();
+        this.loading = !!data;
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
   createForm() {
@@ -44,26 +49,13 @@ export class SearchFormComponent implements OnInit {
     });
   }
 
-  search() {
-    this.loading = true;
-    this.searchResultChanged.emit(null);
+  search(event: Event) {
+    event.preventDefault();
     const requestModel = this._createSerchRequestModel();
     console.log(requestModel);
-    this.fileSearchService
-      .search(requestModel)
-      .pipe(
-        finalize(() => this.loading = false),
-        take(1),
-      )
-      .subscribe(
-        (searchResult: SearchResponseModel[]) => {
-          this.searchResultChanged.emit(searchResult);
-        },
-        (error: ErrorModel) => {
-          error = error;
-          console.log(error);
-        }
-      );
+    this.loading = true;
+    //this.fileSearchService.clearSearch();
+    this.fileSearchService.search(requestModel);
   }
 
   _createSerchRequestModel(): SearchRequestModel {
@@ -72,5 +64,4 @@ export class SearchFormComponent implements OnInit {
     const searchTerm = this.formGroup.controls.searchTerm.value;
     return SearchRequestModel.of(server, rootPath, searchTerm);
   }
-
 }
