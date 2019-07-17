@@ -252,3 +252,9 @@ If you prefer, import the `mimecast-backend` folder into your favorite IDE, and 
 Another option would be run the following command line in your terminal: `java -jar ./target/mimecast-backend-0.0.1.jar`. 
 
 > Make sure you run this command at root level of the mimecast-backend folder
+
+## Testing the backend
+
+In order to test the backend you can use the following command: `curl 'http://localhost:8080/file/search?rootPath=/tmp&searchTerm=aaa'`
+
+> In my case I am using linux machine who has a _/tmp_ path. Make sure you change the `rootPath` request parameter to a valid path inside the OS where the backend is running. 
