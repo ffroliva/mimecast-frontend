@@ -33,6 +33,7 @@ import {MatTableModule} from '@angular/material/table';
 import {MatSortModule} from '@angular/material/sort';
 import {MatPaginatorModule} from '@angular/material/paginator';
 import { NgModule } from '@angular/core';
+import {CdkTableModule} from '@angular/cdk/table';
 
 
 @NgModule({
@@ -72,7 +73,8 @@ import { NgModule } from '@angular/core';
     MatSnackBarModule,
     MatTableModule,
     MatSortModule,
-    MatPaginatorModule
+    MatPaginatorModule,
+    CdkTableModule,
   ]
 })
 export class MaterialModule { }

@@ -11,7 +11,6 @@ import { SearchRequestModel } from '../model/search-request.model';
 export class FileSearchService {
 
   private subject: Subject<SearchResponseModel> = new Subject();
-  private clearResultSubject: Subject<boolean> = new Subject();
 
   constructor(
     private http: HttpClient,
@@ -39,14 +38,6 @@ export class FileSearchService {
 
   sendSearchResponse(searchResponseModel: SearchResponseModel) {
     this.subject.next(searchResponseModel);
-  }
-
-  clearSearch() {
-    return this.clearResultSubject.next();
-  }
-
-  getClearResult(): Observable<boolean> {
-    return this.clearResultSubject.asObservable();
   }
 
   getSearchResult(): Observable<SearchResponseModel> {

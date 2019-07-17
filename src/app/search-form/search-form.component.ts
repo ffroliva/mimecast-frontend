@@ -1,11 +1,11 @@
-import { Component, EventEmitter, OnInit, Output, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
+
 import { SearchRequestModel } from '../model/search-request.model';
 import { SearchResponseModel } from '../model/search-response.model';
 import { FileSearchService } from '../service/file-search.service';
 import { ServerService } from '../service/server.service';
-
 
 @Component({
   selector: 'app-search-form',
@@ -18,22 +18,29 @@ export class SearchFormComponent implements OnInit, OnDestroy {
   formGroup: FormGroup;
   error: any;
   subscription: Subscription;
+  dataSource: Array<SearchResponseModel> = [];
   loading = false;
 
   constructor(
     private formBuilder: FormBuilder,
     private serverService: ServerService,
     private fileSearchService: FileSearchService,
+    private changeDetectorRefs: ChangeDetectorRef,
   ) { }
 
   ngOnInit() {
     this.servers$ = this.serverService.getServers();
     this.createForm();
-    this.subscription = this.fileSearchService.getSearchResult().subscribe(data => {
-      if (!data) {
-        console.log();
-        this.loading = !!data;
+    this.subscription = this.fileSearchService
+    .getSearchResult()
+    .subscribe(data => {
+      if (data) {
+        this.dataSource = this.dataSource.concat(data);
+      } else {
+        console.log('search finished fetching data...');
+        this.loading = false;
       }
+      this.changeDetectorRefs.detectChanges();
     });
   }
 
@@ -49,12 +56,10 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  search(event: Event) {
-    event.preventDefault();
+  search() {
     const requestModel = this._createSerchRequestModel();
-    console.log(requestModel);
     this.loading = true;
-    //this.fileSearchService.clearSearch();
+    this.dataSource = [];
     this.fileSearchService.search(requestModel);
   }
 

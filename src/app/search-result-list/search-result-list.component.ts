@@ -9,22 +9,11 @@ import { FileSearchService } from '../service/file-search.service';
 })
 export class SearchResultListComponent implements OnInit {
 
-  dataSource: SearchResponseModel[] = [];
   displayedColumns: string[] = ['position', 'filePath', 'count'];
+  @Input() dataSource: Array<SearchResponseModel> = [];
 
-  constructor(
-    private service: FileSearchService,
-    private changeDetectorRefs: ChangeDetectorRef,
-    ) {}
+  constructor() {}
 
-  ngOnInit() {
-    this.service.getSearchResult()
-    .subscribe(data => {
-      if ( data ) {
-        this.dataSource = this.dataSource.concat(data);
-        this.changeDetectorRefs.detectChanges();
-      }
-    });
-  }
+  ngOnInit() { }
 
 }
