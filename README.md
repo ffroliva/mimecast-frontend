@@ -1,17 +1,17 @@
 # Mimecast File Search App
 
-## Overview of the app:
+## Overview of the app
 
-This app search and count the number of matches of a given terms in files of a given filepath at `localhost` in a stream fashion. (non-blocking)
+This app searches and count the number of matches a given terms is found in files of a given filepath at `localhost` in a stream like fashion. (non-blocking)
 
-## Stack of tecnologies used
+## Stack of tecnologies
 
 - Frontend: Angular 8+, Angular Material and Server Side Events (SSE)
 - Backend: spring-boot and spring-webflux (for data streaming)
 
 ## How it workes
 
-The application starting point is the `search-form` component.
+The application starting point is the `search-form.component`.
 
 ```typescript
 @Component({
@@ -79,17 +79,72 @@ export class SearchFormComponent implements OnInit, OnDestroy {
 }
 
 ```
-the serch form has three fields: 
+search-form.component.html
+```html
+<mat-card fxflex fxLayoutGap="16px" class="example-container">
+    <mat-card-title>Search Form</mat-card-title>
+    <mat-card-content>
+        <form class="example-container" [formGroup]="formGroup" >
+            <label id="example-radio-group-label">Pick a server to search:</label>
+            <mat-radio-group aria-labelledby="example-radio-group-label" class="example-radio-group"
+                formControlName="server">
+                <mat-radio-button class="example-radio-button" *ngFor="let server of (servers$ | async)"
+                    [value]="server">
+                    {{server}}
+                </mat-radio-button>
+            </mat-radio-group>
+            <mat-error></mat-error>
+            <mat-form-field>
+                <input matInput formControlName="rootPath" placeholder="Path to search at selected server" required>
+            </mat-form-field>
+            <mat-form-field>
+                <input matInput formControlName="searchTerm" placeholder="Search term" required>
+            </mat-form-field>
+        </form>
+    </mat-card-content>
+    <mat-card-actions>
+        <button type="button" mat-raised-button color="primary" (click)="search()" [disabled]="formGroup.invalid">SEARCH</button>
+    </mat-card-actions>
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+</mat-card>
+<app-search-result-list [dataSource]="dataSource"></app-search-result-list>
+```
 
-- **Pick a server to search:** Radio button to select the server to search at. The list of avaiable servers is an endpoint in the backend that returns a list of servers. For simplicity only a single item is added which is 'localhost'.
-- **Path to search at selected server:** Path of the localhost server. 
+The `search-form.component` has a form with three fields: 
+
+- **Pick a server to search:** Radio button to select the server to search at. The list of avaiable servers is an endpoint in the backend that returns a list of servers. For simplicity only a single item,'localhost', is added in the list retrived from the backend.
+- **Path to search at selected server:** File path to search at the selected server. 
 - **Search Term:** word or phrase to serch for.
 
-When the user triggers the search button the app calls the search method from `file-search-service` who uses `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
+On the `ngInit` lifecycle hook is where the magic happend. Inside it three actions are executed:
+1. Initialize the `servers$` instance which is an observable that is used to fetch list of servers in the backend. This observable is used in the `search-form.component.html` with `| async` 
+2. Create a reactive form by calling `this.createForm()`. This method uses `formBuilder` to initialize the reactive `formGroup`. 
+3. Subscribe to the `getSearchResult()` which is the method responsable for receving the data as a stream. _(More on this bellow)_
 
-The `onmessage` method from the eventSource receives the data from the backend. In order to update the `mat-table` we created a `subject` that is transformed as an observable we can subscribe to.
+When the user triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
 
+The `onmessage` method from the `eventSource` attribute receives the data from the backend. In order to update the result, which is a `mat-table`, I created a `subject` that was transformed as an observable I subscribed to and on every message received I push it to the `dataSource` array that is consumed by `search-result-list.component`.
+
+file-search.service.ts
 ```typescript
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, Subject } from 'rxjs';
+
+import { SearchResponseModel } from '../model/search-response.model';
+import { SearchRequestModel } from '../model/search-request.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FileSearchService {
+
+  private subject: Subject<SearchResponseModel> = new Subject();
+
+  constructor(
+    private http: HttpClient,
+    ) { }
+
   search(searchRequestModel: SearchRequestModel): void {
     const param = new HttpParams()
     .set('rootPath', searchRequestModel.rootPath)
@@ -109,27 +164,67 @@ The `onmessage` method from the eventSource receives the data from the backend. 
       this.subject.next(null);
     };
   }
+
+  sendSearchResponse(searchResponseModel: SearchResponseModel) {
+    this.subject.next(searchResponseModel);
+  }
+
+  getSearchResult(): Observable<SearchResponseModel> {
+    return this.subject.asObservable();
+  }
+
+}
+```
+search-result-list.component.ts
+```typescript
+import { Component, OnInit, Input } from '@angular/core';
+import { SearchResponseModel } from '../model/search-response.model';
+
+@Component({
+  selector: 'app-search-result-list',
+  templateUrl: './search-result-list.component.html',
+  styleUrls: ['./search-result-list.component.scss']
+})
+export class SearchResultListComponent implements OnInit {
+
+  displayedColumns: string[] = ['position', 'filePath', 'count'];
+  @Input() dataSource: Array<SearchResponseModel> = [];
+
+  constructor() {}
+
+  ngOnInit() { }
+
+}
 ```
 
 ## Considerations about the stream of data:
 
-One of the main problems about the stream of that is **backpressure**. In the backend the stream of data is delayed in 100 miliseconds so that it gives the browser the chance to process the incoming data. If we do not set a delay the browser is not able to handle the dataflow specially if you are searching in deep directories.
+One of the main problems about the stream of that is **backpressure**. In the backend the stream of data is delayed in 100 miliseconds so the browser can handle incoming data properly. If no delay is set the browser might freeze due to the the possible big amount of data flow, specially if searching in deep directories.
 
-## Google guava for the rescue in relation of searching directories.
+## Server Side Event
 
-While developing the backend I faced situations where I was not able to handle exceptions properly. I developed two other implementations of the file search, one using `Files.walk` and `Files.walkfiletree`. The `Files.walk` throws `java.io.UncheckedIOException: java.nio.file.AccessDeniedException:` that I was not able to treat properly, so I had to drop this implementation.
+Server side events have a peculiarity, it only accepts `GET` methods
 
-The second implementation I tried used `Files.walkfiletree`. However, in this implementation I was not able to receive a stream of data being processed, so I dropped it.
+## Google guava for the rescue in the file search in the backend.
 
-My third and final implementation used google glava utility box to search the files of a given directory. Bellow I show the code:
+While developing the backend I faced situations where I was not able to handle exceptions properly. I developed two other implementations of the file search, one using `Files.walk` and `Files.walkfiletree`. 
+
+1. At first I used `Files.walk` who eventually might throws `java.io.UncheckedIOException: java.nio.file.AccessDeniedException:` which can't be catched by a `try-catch` block. I, therefore, dropped this implementation.
+
+2. Then, I tried using `Files.walkfiletree`. However, in this implementation I was not able to properly return a stream of data out of it. This implementation was also dropped.
+
+3. My third and final implementation used google guava toolbox to search the files of a given directory. With google guava I was able to handle erros properly. Here is the code:
 
 ```java
 package br.com.ffroliva.mimecast.service.impl;
 
+import br.com.ffroliva.mimecast.config.properties.MessageProperty;
+import br.com.ffroliva.mimecast.exception.BusinessException;
 import br.com.ffroliva.mimecast.payload.SearchRequest;
 import br.com.ffroliva.mimecast.payload.SearchResponse;
 import br.com.ffroliva.mimecast.service.SearchService;
 import br.com.ffroliva.mimecast.validation.Validation;
+import br.com.ffroliva.mimecast.validation.rule.IsValidPath;
 import br.com.ffroliva.mimecast.validation.rule.ServerValidationRule;
 import com.google.common.io.Files;
 import lombok.extern.slf4j.Slf4j;
@@ -151,15 +246,20 @@ public class FileSearchService implements SearchService {
 
     @Override
     public Stream<SearchResponse> search(SearchRequest searchRequest) {
-        Validation.execute(ServerValidationRule.of(searchRequest.getHost()));
-
-        File file = Paths.get(searchRequest.getRootPath()).toFile();
-        return StreamSupport
-                .stream(Files.fileTraverser()
-                        .breadthFirst(file).spliterator(), true)
-                .filter(f -> f.isFile() && f.canRead())
-                .map(f -> this.searchFileContent(f, searchRequest.getSearchTerm()))
-                .sorted(Comparator.comparing(SearchResponse::getFilePath));
+        try {
+            File file = Paths.get(searchRequest.getRootPath()).toFile();
+            Validation.execute(ServerValidationRule.of(searchRequest.getHost()));
+            Validation.execute(IsValidPath.of(file));
+            return StreamSupport
+                    .stream(Files.fileTraverser()
+                            .breadthFirst(file).spliterator(), true)
+                    .filter(f -> f.isFile() && f.canRead())
+                    .map(f -> this.searchFileContent(f, searchRequest.getSearchTerm()))
+                    .sorted(Comparator.comparing(SearchResponse::getFilePath));
+        } catch (Exception e) {
+            throw new BusinessException(MessageProperty.INVALID_PATH
+                    .bind(searchRequest.getRootPath()));
+        }
     }
 
     private SearchResponse searchFileContent(File file, String searchTerm) {
@@ -197,8 +297,9 @@ public class FileSearchService implements SearchService {
         return count;
     }
 }
-```
 
+```
+## How to run the APP
 
 ## Installing node dependencies
 

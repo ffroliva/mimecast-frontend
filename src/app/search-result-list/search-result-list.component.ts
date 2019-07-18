@@ -1,6 +1,5 @@
-import { Component, OnInit, Input, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { SearchResponseModel } from '../model/search-response.model';
-import { FileSearchService } from '../service/file-search.service';
 
 @Component({
   selector: 'app-search-result-list',

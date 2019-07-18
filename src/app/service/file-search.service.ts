@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, Subject, of } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { SearchResponseModel } from '../model/search-response.model';
 import { SearchRequestModel } from '../model/search-request.model';
