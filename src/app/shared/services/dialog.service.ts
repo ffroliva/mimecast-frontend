@@ -22,11 +22,11 @@ export class DialogService {
     const configDefault = {
       message: '',
       messages: [],
-      title: 'Alerta!',
+      title: 'Warning!',
       type: 'warn',
     };
     const dialog: MatBottomSheetRef = this.bottomSheet.open(DialogAlertComponent, {
-      ariaLabel: 'Diálogo com uma mensagem',
+      ariaLabel: 'Dialog with a message',
       data: { ...configDefault, ...config }
     });
 
