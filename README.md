@@ -116,14 +116,14 @@ The `search-form.component` has a form with three fields:
 - **Path to search at selected server:** File path to search at the selected server. 
 - **Search Term:** word or phrase to serch for.
 
-On the `ngInit` lifecycle hook is where the magic happend. Inside it three actions are executed:
+On the `ngInit` lifecycle hook is where the magic happend. Three actions are executed inside of it:
 1. Initialize the `servers$` instance which is an observable that is used to fetch list of servers in the backend. This observable is used in the `search-form.component.html` with `| async` 
 2. Create a reactive form by calling `this.createForm()`. This method uses `formBuilder` to initialize the reactive `formGroup`. 
 3. Subscribe to the `getSearchResult()` which is the method responsable for receving the data as a stream. _(More on this bellow)_
 
 When the user triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
 
-The `onmessage` method from the `eventSource` attribute receives the data from the backend. In order to update the result, which is a `mat-table`, I created a `subject` that was transformed as an observable I subscribed to and on every message received I push it to the `dataSource` array that is consumed by `search-result-list.component`.
+The `onmessage` method from the `eventSource` attribute receives the data from the backend. In order to update the result, which is a `mat-table`, I created a `subject` that was transformed as an observable I subscribed to and on every message received I concat it to the `dataSource` array that is consumed by `search-result-list.component`.
 
 file-search.service.ts
 ```typescript
@@ -150,10 +150,6 @@ export class FileSearchService {
     .set('rootPath', searchRequestModel.rootPath)
     .set('searchTerm', searchRequestModel.searchTerm);
     const eventSource = new EventSource(`/api/file/search?${param.toString()}`);
-
-    eventSource.addEventListener('searchFile', (e) => {
-      console.log(e);
-    }, false);
 
     eventSource.onmessage = (event) => {
       this.subject.next(JSON.parse(event.data));
@@ -199,11 +195,44 @@ export class SearchResultListComponent implements OnInit {
 
 ## Considerations about the stream of data:
 
-One of the main problems about the stream of that is **backpressure**. In the backend the stream of data is delayed in 100 miliseconds so the browser can handle incoming data properly. If no delay is set the browser might freeze due to the the possible big amount of data flow, specially if searching in deep directories.
+One of the main problems about non-blocking data streaming is the capacity the consumer has to process the incoming dataflow from the backend. In this app, when I searched in folders with many files and folders deep, if no **backpressure** mechanism where introduced the browser would crash. In order to release the pressure due to the volume of that being produced by the backend a delayed of 100 miliseconds where introduced in the backend which allowed the browser can handle incoming data properly.
 
-## Server Side Event
+## Considerations about the Server Side Event
 
-Server side events have a peculiarity, it only accepts `GET` methods
+Server side events have a peculiarity that it only accepts `GET` methods.
+
+## Stringboot Webflux for the datastreaming
+
+Spring framework has an API fro data streaming called webflux. I used this API to produce the streaming in the `FileSearchController.java`
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/file")
+public class FileSearchController {
+
+    private final SearchService searchService;
+    private String host;
+
+    @GetMapping(
+            value = "/search", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<SearchResponse> search(
+            @RequestParam(value = "rootPath") String rootPath,
+            @RequestParam(value = "searchTerm") String searchTerm,
+            ServerHttpRequest request) {
+        return Flux.fromStream(searchService
+                .search(SearchRequest.of(request.getURI().getHost(), rootPath, searchTerm)))
+                .delayElements(Duration.of(100L, ChronoUnit.MILLIS));
+    }
+}
+```
+
+Observe that `MediaType.TEXT_EVENT_STREAM_VALUE` is produced. SSE expects this media type. Since we receive a text strem this stream needs to be parsed to the a JSON. We there for use `JSON.parse(event.data)`.
+
+## Erro handling
+
+If a handled exception is thrown it is logged in the backend with as `BusinessException`. In the frontend no data is processed a `DialogAlertComponent` is presented with a message.
 
 ## Google guava for the rescue in the file search in the backend.
 
@@ -216,30 +245,6 @@ While developing the backend I faced situations where I was not able to handle e
 3. My third and final implementation used google guava toolbox to search the files of a given directory. With google guava I was able to handle erros properly. Here is the code:
 
 ```java
-package br.com.ffroliva.mimecast.service.impl;
-
-import br.com.ffroliva.mimecast.config.properties.MessageProperty;
-import br.com.ffroliva.mimecast.exception.BusinessException;
-import br.com.ffroliva.mimecast.payload.SearchRequest;
-import br.com.ffroliva.mimecast.payload.SearchResponse;
-import br.com.ffroliva.mimecast.service.SearchService;
-import br.com.ffroliva.mimecast.validation.Validation;
-import br.com.ffroliva.mimecast.validation.rule.IsValidPath;
-import br.com.ffroliva.mimecast.validation.rule.ServerValidationRule;
-import com.google.common.io.Files;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
 @Slf4j
 @Service
 public class FileSearchService implements SearchService {
@@ -358,4 +363,6 @@ Another option would be run the following command line in your terminal: `java -
 
 In order to test the backend you can use the following command: `curl 'http://localhost:8080/file/search?rootPath=/tmp&searchTerm=aaa'`
 
-> In my case I am using linux machine who has a _/tmp_ path. Make sure you change the `rootPath` request parameter to a valid path inside the OS where the backend is running. 
+> In my case I am using linux machine who has a _/tmp_ path. Make sure you change the `rootPath` request parameter to a valid path inside the OS where the backend is running.
+
+## Developed by Flávio Oliva

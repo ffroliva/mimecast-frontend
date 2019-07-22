@@ -2,7 +2,7 @@
 // by this way is easier to maintenance you app.module
 
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {MatCheckboxModule} from '@angular/material';
+import {MatCheckboxModule, MatBottomSheetModule} from '@angular/material';
 import {MatButtonModule} from '@angular/material';
 import {MatInputModule} from '@angular/material/input';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
@@ -26,7 +26,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
-import {MatDialogModule} from '@angular/material/dialog';
+import {MatDialogModule, MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle} from '@angular/material/dialog';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTableModule} from '@angular/material/table';
@@ -37,8 +37,12 @@ import {CdkTableModule} from '@angular/cdk/table';
 
 
 @NgModule({
-  imports: [],
-  providers: [],
+  imports: [MatBottomSheetModule, MatDialogModule],
+  providers: [
+    { provide: MatDialogTitle, useValue: {} },
+    { provide: MatDialogRef, useValue: {} },
+    { provide: MAT_DIALOG_DATA, useValue: [] },
+  ],
   declarations: [],
   bootstrap: [],
   exports: [
@@ -75,6 +79,7 @@ import {CdkTableModule} from '@angular/cdk/table';
     MatSortModule,
     MatPaginatorModule,
     CdkTableModule,
+    MatBottomSheetModule,
   ]
 })
 export class MaterialModule { }

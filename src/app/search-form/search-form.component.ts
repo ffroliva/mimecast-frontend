@@ -6,6 +6,8 @@ import { SearchRequestModel } from '../model/search-request.model';
 import { SearchResponseModel } from '../model/search-response.model';
 import { FileSearchService } from '../service/file-search.service';
 import { ServerService } from '../service/server.service';
+import { DialogAlertComponent } from '../shared/components/dialog-alert/dialog-alert.component';
+import { DialogService } from '../shared/services/dialog.service';
 
 @Component({
   selector: 'app-search-form',
@@ -26,6 +28,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     private serverService: ServerService,
     private fileSearchService: FileSearchService,
     private changeDetectorRefs: ChangeDetectorRef,
+    private dialogService: DialogService,
   ) { }
 
   ngOnInit() {
@@ -37,8 +40,10 @@ export class SearchFormComponent implements OnInit, OnDestroy {
       if (data) {
         this.dataSource = this.dataSource.concat(data);
       } else {
-        console.log('search finished fetching data...');
         this.loading = false;
+        if (this.dataSource.length === 0) {
+          this.dialogService.showAlert('Given filepath does not exist.');
+        }
       }
       this.changeDetectorRefs.detectChanges();
     });

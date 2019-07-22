@@ -22,10 +22,6 @@ export class FileSearchService {
     .set('searchTerm', searchRequestModel.searchTerm);
     const eventSource = new EventSource(`/api/file/search?${param.toString()}`);
 
-    eventSource.addEventListener('searchFile', (e) => {
-      console.log(e);
-    }, false);
-
     eventSource.onmessage = (event) => {
       this.subject.next(JSON.parse(event.data));
     };

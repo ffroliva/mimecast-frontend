@@ -1,0 +1,9 @@
+<h2 mat-dialog-title>{{ config.title }}</h2>
+<span [ngClass]="config.type" aria-hidden="true"></span>
+<mat-dialog-content>
+  <p *ngIf="config.message">{{ config.message }}</p>
+  <p *ngFor="let message of config.messages">{{ message }}</p>
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-raised-button (click)="closeMe()" >CLOSE</button>
+</mat-dialog-actions>
