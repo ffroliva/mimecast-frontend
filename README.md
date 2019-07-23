@@ -125,7 +125,7 @@ On the `ngInit` lifecycle hook is where the magic happend. Three actions are exe
 
 When the user triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
 
-The `onmessage` method from the `eventSource` attribute receives the data from the backend. In order to update the result, which is a `mat-table`, I created a `subject` that was transformed as an observable I subscribed to and on every message received I concat it to the `dataSource` array that is consumed by `search-result-list.component`.
+The `onmessage` method from the `eventSource` attribute receives the data from the backend and updates the `dataSource` used by the `mat-table`. A `subject` was created and transformed into an observable. On every message received the incomming message is concatenated into the `dataSource` array that is consumed by `search-result-list.component`.
 
 file-search.service.ts
 ```typescript
@@ -184,7 +184,7 @@ export class SearchResultListComponent implements OnInit {
 
 ## Considerations about the stream of data:
 
-One of the main problems about stream of data and it non-blocking way of transfer data is the capacity of clients/consumer to process the volume of incoming data. In this app, when I searched in folders with many files and folders deep, if no **backpressure** mechanism introduced the browser would crash. In order to release the pressure to the browser a delayed of 100 miliseconds where introduced and it allowed the browser can handle incoming data properly.
+One of the main problems about streamming of data relates to the the capacity of clients/consumers to process the volume of incoming data. In this app, when searching a folder with many files and folders deep, if no **backpressure** mechanism is introduced the browser will probably crash. In order to release the pressure to the browser a delayed of 100 miliseconds where introduced and it allowed the browser to handle the incoming data properly.
 
 ## Considerations about the Server Side Event
 
