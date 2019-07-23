@@ -4,13 +4,14 @@ import { Observable, Subject } from 'rxjs';
 
 import { SearchResponseModel } from '../model/search-response.model';
 import { SearchRequestModel } from '../model/search-request.model';
+import { MessageEventModel } from '../model/message-event.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FileSearchService {
 
-  private subject: Subject<SearchResponseModel> = new Subject();
+  private subject: Subject<MessageEventModel> = new Subject();
 
   constructor(
     private http: HttpClient,
@@ -28,15 +29,15 @@ export class FileSearchService {
 
     eventSource.onerror = (event) => {
       eventSource.close();
-      this.subject.next(null);
+      this.subject.next();
     };
   }
 
-  sendSearchResponse(searchResponseModel: SearchResponseModel) {
-    this.subject.next(searchResponseModel);
+  sendMessage(message: MessageEventModel) {
+    this.subject.next(message);
   }
 
-  getSearchResult(): Observable<SearchResponseModel> {
+  getMessage(): Observable<MessageEventModel> {
     return this.subject.asObservable();
   }
 

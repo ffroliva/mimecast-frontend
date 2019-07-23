@@ -5,6 +5,7 @@ import { FlexLayoutModule } from '@angular/flex-layout';
 import { RouterModule } from '@angular/router';
 import { MaterialModule } from '../material/material.module';
 import { DialogAlertComponent } from './components/dialog-alert/dialog-alert.component';
+import { MAT_BOTTOM_SHEET_DEFAULT_OPTIONS } from '@angular/material';
 
 
 
@@ -27,6 +28,7 @@ import { DialogAlertComponent } from './components/dialog-alert/dialog-alert.com
     exports: [
     ],
     providers: [
+      {provide: MAT_BOTTOM_SHEET_DEFAULT_OPTIONS, useValue: {hasBackdrop: false}}
     ],
   })
   export class SharedModule { }

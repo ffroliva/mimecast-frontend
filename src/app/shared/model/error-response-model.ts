@@ -1,4 +1,4 @@
-export class ErrorModel {
+export class ErrorResponseModel {
    message?: string;
    status?: string;
 }

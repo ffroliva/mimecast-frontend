@@ -28,6 +28,7 @@ export class DialogService {
     const dialog: MatBottomSheetRef = this.bottomSheet.open(DialogAlertComponent, {
       ariaLabel: 'Dialog with a message',
       data: { ...configDefault, ...config },
+      disableClose: true,
     });
 
     dialog.afterDismissed().subscribe((result?: boolean) => {

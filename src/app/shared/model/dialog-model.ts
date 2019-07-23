@@ -1,5 +1,5 @@
-import { ErrorModel } from './error-model';
+import { ErrorResponseModel } from './error-response-model';
 
 export interface DialogData {
-  error: ErrorModel;
+  error: ErrorResponseModel;
 }

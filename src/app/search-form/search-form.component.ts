@@ -1,13 +1,12 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
-
 import { SearchRequestModel } from '../model/search-request.model';
 import { SearchResponseModel } from '../model/search-response.model';
 import { FileSearchService } from '../service/file-search.service';
 import { ServerService } from '../service/server.service';
-import { DialogAlertComponent } from '../shared/components/dialog-alert/dialog-alert.component';
 import { DialogService } from '../shared/services/dialog.service';
+
 
 @Component({
   selector: 'app-search-form',
@@ -35,15 +34,14 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     this.servers$ = this.serverService.getServers();
     this.createForm();
     this.subscription = this.fileSearchService
-    .getSearchResult()
-    .subscribe(data => {
-      if (data) {
-        this.dataSource = this.dataSource.concat(data);
+    .getMessage()
+    .subscribe(message => {
+      if (message && message.type === 'success') {
+        this.dataSource = this.dataSource.concat(message.data);
+      } else  if (message && message.type === 'error') {
+        this.dialogService.showAlert(message.data.message);
       } else {
         this.loading = false;
-        if (this.dataSource.length === 0) {
-          this.dialogService.showAlert('Unable to read files from the given directory.');
-        }
       }
       this.changeDetectorRefs.detectChanges();
     });
@@ -61,7 +59,8 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  search() {
+  search(event: Event) {
+    event.preventDefault();
     const requestModel = this._createSerchRequestModel();
     this.loading = true;
     this.dataSource = [];
