@@ -238,7 +238,7 @@ public class ErrorResponse implements Data {
 
 ## Stringboot Webflux for the datastreaming
 
-Spring framework has a streaming API called webflux. It was used produce expected data flow in the `FileSearchController.java`
+Spring framework has a streaming API called webflux. It was used in the `FileSearchController.java` to produce the expected data flow.
 
 ```java
 @Slf4j
