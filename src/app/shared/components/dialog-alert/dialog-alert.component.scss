@@ -1,0 +1,33 @@
+@import 'colors';
+@import 'animations';
+
+@include app-animation-bounce {
+
+  .warn::before,
+  .accent::before,
+  .primary::before {
+    float: left;
+    font-family: 'Material Icons';
+    font-size: 2em;
+    display: block;
+    animation-name: app-bounce;
+    animation-duration: 1s;
+    animation-fill-mode: both;
+    animation-direction: center bottom;
+  }
+  
+  .warn::before {
+    content: 'warning';
+    color: $app-warn-color;
+  }
+  
+  .accent::before {
+    content: 'announcement';
+    color: $app-accent-color;
+  }
+  
+  .primary::before {
+    content: 'info';
+    color: $app-primary-color;
+  }
+}
