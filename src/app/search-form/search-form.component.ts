@@ -42,7 +42,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
       } else {
         this.loading = false;
         if (this.dataSource.length === 0) {
-          this.dialogService.showAlert('Given filepath does not exist.');
+          this.dialogService.showAlert('Unable to read files from the given directory.');
         }
       }
       this.changeDetectorRefs.detectChanges();

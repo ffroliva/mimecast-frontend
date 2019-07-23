@@ -13,7 +13,7 @@ export class DialogService {
 
   constructor(
     private bottomSheet: MatBottomSheet,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) { }
 
   showAlert(configOrMessage: DialogAlertConfig | string): void {
@@ -27,7 +27,7 @@ export class DialogService {
     };
     const dialog: MatBottomSheetRef = this.bottomSheet.open(DialogAlertComponent, {
       ariaLabel: 'Dialog with a message',
-      data: { ...configDefault, ...config }
+      data: { ...configDefault, ...config },
     });
 
     dialog.afterDismissed().subscribe((result?: boolean) => {

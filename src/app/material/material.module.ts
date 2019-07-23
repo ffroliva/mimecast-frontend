@@ -37,12 +37,8 @@ import {CdkTableModule} from '@angular/cdk/table';
 
 
 @NgModule({
-  imports: [MatBottomSheetModule, MatDialogModule],
-  providers: [
-    { provide: MatDialogTitle, useValue: {} },
-    { provide: MatDialogRef, useValue: {} },
-    { provide: MAT_DIALOG_DATA, useValue: [] },
-  ],
+  imports: [MatBottomSheetModule],
+  providers: [],
   declarations: [],
   bootstrap: [],
   exports: [
