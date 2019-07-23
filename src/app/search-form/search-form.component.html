@@ -10,6 +10,7 @@
                 <mat-label>Search term</mat-label>
                 <input matInput formControlName="searchTerm" placeholder="Search term" required>
             </mat-form-field>
+            <label id="example-radio-group-label">Server to search at: </label>
             <mat-radio-group aria-labelledby="example-radio-group-label" formControlName="server">
                 <mat-radio-button *ngFor="let server of (servers$ | async)" [value]="server">
                     {{server}}
