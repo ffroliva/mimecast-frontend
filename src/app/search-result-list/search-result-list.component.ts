@@ -8,7 +8,7 @@ import { SearchResponseModel } from '../model/search-response.model';
 })
 export class SearchResultListComponent implements OnInit {
 
-  displayedColumns: string[] = ['position', 'filePath', 'count'];
+  displayedColumns: string[] = ['position', 'filePath', 'count', 'server'];
   @Input() dataSource: Array<SearchResponseModel> = [];
 
   constructor() {}
