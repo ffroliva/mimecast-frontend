@@ -3,22 +3,30 @@
         <mat-card-title>Search Form</mat-card-title>
         <mat-card-content fxLayout="row wrap" fxLayout.lt-md="column" fxLayoutGap="16px grid">
             <mat-form-field fxFlex="50%">
-                <mat-label>Path to search at selected server</mat-label>
-                <input matInput formControlName="rootPath" placeholder="Path to search at selected server" required>
+                <mat-label>Path to search at</mat-label>
+                <input matInput formControlName="rootPath" placeholder="Path to search" required>
+                <mat-error *ngIf="formGroup.hasError('required', 'searchTerm')">Field <b>required.</b></mat-error>
             </mat-form-field>
             <mat-form-field fxFlex="50%">
                 <mat-label>Search term</mat-label>
                 <input matInput formControlName="searchTerm" placeholder="Search term" required>
+                <mat-error *ngIf="formGroup.hasError('required', 'searchTerm')">Field <b>required.</b></mat-error>
             </mat-form-field>
-            <label id="example-radio-group-label">Server to search at: </label>
-            <mat-radio-group aria-labelledby="example-radio-group-label" formControlName="server">
-                <mat-radio-button *ngFor="let server of (servers$ | async)" [value]="server">
-                    {{server}}
-                </mat-radio-button>
-            </mat-radio-group>
+            <ng-container formArrayName="servers">
+                <mat-label>Server(s) to search at *</mat-label>
+                <ng-container *ngFor="let server of formGroup['controls'].servers['controls']; let i = index;">
+                    <div>
+                        <mat-checkbox class="mat-group-checkbox" [formControlName]="i">
+                            {{ servers[i] }}
+                        </mat-checkbox>
+                    </div>
+                </ng-container>
+                <mat-error *ngIf="formGroup.hasError('required', 'servers') && formGroup.get('servers').dirty" >At
+                    least one server should be selected.</mat-error>
+            </ng-container>
         </mat-card-content>
         <mat-card-actions>
-            <button type="submit" mat-raised-button color="primary" [disabled]="formGroup.invalid">SEARCH</button>
+            <button type="submit" mat-raised-button color="primary" >SEARCH</button>
         </mat-card-actions>
         <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
     </mat-card>

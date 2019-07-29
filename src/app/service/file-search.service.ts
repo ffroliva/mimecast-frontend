@@ -18,7 +18,8 @@ export class FileSearchService {
     ) { }
 
   search(searchRequestModel: SearchRequestModel): void {
-    const param = new HttpParams()
+    const param: HttpParams = searchRequestModel.servers
+    .reduce((hp: HttpParams, value: string) => hp.append('servers', value), new HttpParams())
     .set('rootPath', searchRequestModel.rootPath)
     .set('searchTerm', searchRequestModel.searchTerm);
     const eventSource = new EventSource(`/api/file/search?${param.toString()}`);

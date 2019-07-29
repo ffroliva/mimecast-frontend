@@ -1,15 +1,15 @@
 export class SearchRequestModel {
-    server: string;
+    servers: string[];
     rootPath: string;
     searchTerm: string;
 
-    private constructor(server: string, rootPath: string, searchTerm: string) {
-        this.server = server;
+    private constructor(servers: Array<string>, rootPath: string, searchTerm: string) {
+        this.servers = servers;
         this.rootPath = rootPath;
         this.searchTerm = searchTerm;
     }
 
-    static of(server: string, rootPath: string, searchTerm: string): SearchRequestModel {
-        return new SearchRequestModel(server, rootPath, searchTerm);
+    static of(servers: Array<string>, rootPath: string, searchTerm: string): SearchRequestModel {
+        return new SearchRequestModel(servers, rootPath, searchTerm);
       }
 }
