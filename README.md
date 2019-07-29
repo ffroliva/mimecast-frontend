@@ -2,7 +2,7 @@
 
 ## Overview of the app
 
-This app searches and count the number of matches is found of a given terms in files of a given filepath at `localhost` in a stream like fashion. (non-blocking)
+This app searches and count the number of matches of a given terms is found in files of a given filepath at various `servers` in a stream like fashion. (non-blocking)
 
 ## Stack of tecnologies
 
@@ -20,8 +20,7 @@ The application starting point is the `search-form.component`.
   styleUrls: ['./search-form.component.scss']
 })
 export class SearchFormComponent implements OnInit, OnDestroy {
-  servers$: Observable<string[]>;
-
+  servers: string[];
   formGroup: FormGroup;
   error: any;
   subscription: Subscription;
@@ -37,8 +36,14 @@ export class SearchFormComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
-    this.servers$ = this.serverService.getServers();
     this.createForm();
+    this.serverService
+    .getServers()
+    .subscribe(servers => {
+      this.servers = servers;
+      this.buildServersFormArray();
+    });
+
     this.subscription = this.fileSearchService
     .getMessage()
     .subscribe(message => {
@@ -62,24 +67,62 @@ export class SearchFormComponent implements OnInit, OnDestroy {
       server: ['', Validators.required],
       rootPath: ['', Validators.required],
       searchTerm: ['', Validators.required],
+      servers: new FormArray([], Validators.compose([Validators.required, this.minSelectedCheckboxes(1)]))
     });
   }
 
   search(event: Event) {
     event.preventDefault();
-    const requestModel = this._createSerchRequestModel();
+    const requestModel = this.createSearchRequestModel();
     this.loading = true;
     this.dataSource = [];
     this.fileSearchService.search(requestModel);
   }
 
-  _createSerchRequestModel(): SearchRequestModel {
-    const server = this.formGroup.controls.server.value;
+  private buildServersFormArray(): void {
+    this.servers.forEach(server => {
+      const control = new FormControl(false);
+      (this.formGroup.controls.servers as FormArray).push(control);
+    });
+  }
+
+  private createSerchRequestModel(): SearchRequestModel {
+    const servers = this.getSelectedServers();
     const rootPath = this.formGroup.controls.rootPath.value;
     const searchTerm = this.formGroup.controls.searchTerm.value;
-    return SearchRequestModel.of(server, rootPath, searchTerm);
+    return SearchRequestModel.of(servers, rootPath, searchTerm);
+  }
+
+  private getSelectedServers(): string[] {
+    return (this.formGroup.controls.servers as FormArray)
+      .controls
+      .map((control, i) => {
+        if ( control.value === true ) {
+          return this.servers[i];
+        }
+      })
+      .filter((value) => value !== undefined);
+  }
+
+  hasError = (controlName: string, errorName: string, formGroup: FormGroup) => {
+    return formGroup.controls[controlName].hasError(errorName);
+  }
+
+  minSelectedCheckboxes(min = 1) {
+    const validator: ValidatorFn = (formArray: FormArray) => {
+        const totalSelected = formArray.controls
+          // get a list of checkbox values (boolean)
+          .map(control => control.value)
+          // total up the number of checked checkboxes
+          .reduce((prev, next) => next ? prev + next : prev, 0);
+          // if the total is not greater than the minimum, return the error message
+        return totalSelected >= min ? null : { required: true };
+
+    };
+    return validator;
   }
 }
+
 
 ```
 search-form.component.html
@@ -89,22 +132,30 @@ search-form.component.html
         <mat-card-title>Search Form</mat-card-title>
         <mat-card-content fxLayout="row wrap" fxLayout.lt-md="column" fxLayoutGap="16px grid">
             <mat-form-field fxFlex="50%">
-                <mat-label>Path to search at selected server</mat-label>
-                <input matInput formControlName="rootPath" placeholder="Path to search at selected server" required>
+                <mat-label>Path to search at</mat-label>
+                <input matInput formControlName="rootPath" placeholder="Path to search" required>
+                <mat-error *ngIf="formGroup.hasError('required', 'searchTerm')">Field <b>required.</b></mat-error>
             </mat-form-field>
             <mat-form-field fxFlex="50%">
                 <mat-label>Search term</mat-label>
                 <input matInput formControlName="searchTerm" placeholder="Search term" required>
+                <mat-error *ngIf="formGroup.hasError('required', 'searchTerm')">Field <b>required.</b></mat-error>
             </mat-form-field>
-            <label id="example-radio-group-label">Server to search at: </label>
-            <mat-radio-group aria-labelledby="example-radio-group-label" formControlName="server">
-                <mat-radio-button *ngFor="let server of (servers$ | async)" [value]="server">
-                    {{server}}
-                </mat-radio-button>
-            </mat-radio-group>
+            <ng-container formArrayName="servers">
+                <mat-label>Server(s) to search at *</mat-label>
+                <ng-container *ngFor="let server of formGroup['controls'].servers['controls']; let i = index;">
+                    <div>
+                        <mat-checkbox class="mat-group-checkbox" [formControlName]="i">
+                            {{ servers[i] }}
+                        </mat-checkbox>
+                    </div>
+                </ng-container>
+                <mat-error *ngIf="formGroup.hasError('required', 'servers') && formGroup.get('servers').dirty" >At
+                    least one server should be selected.</mat-error>
+            </ng-container>
         </mat-card-content>
         <mat-card-actions>
-            <button type="submit" mat-raised-button color="primary" [disabled]="formGroup.invalid">SEARCH</button>
+            <button type="submit" mat-raised-button color="primary" disabled="formGroup.invalid">SEARCH</button>
         </mat-card-actions>
         <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
     </mat-card>
@@ -114,13 +165,13 @@ search-form.component.html
 
 The `search-form.component` has a form with three fields: 
 
-- **Path to search at selected server:** File path to search at the selected server. 
+- **Path to search at:** File path to search at the selected server. 
 - **Search Term:** word or phrase to serch for.
-- **Server to search at:** Radio button to select the server to search at. The list of avaiable servers is an endpoint in the backend. For simplicity only a single item,'localhost', is added in the list retrived from the backend.
+- **Server(s) to search at:** Checkbox to select the server(s) to search at. There is an endpoint to the backend that gets the list of avaiable.
 
 On the `ngInit` lifecycle hook is where the magic happend. Three actions are executed inside of it:
-1. Initialize the `servers$` instance which is an observable that is used to fetch list of servers in the backend. This observable is used in the `search-form.component.html` with `| async` 
 2. Create a reactive form by calling `this.createForm()`. This method uses `formBuilder` to initialize the reactive `formGroup`. 
+1. Subcribe to `getServers()` which is the method responsable for getting the list of avaiable servers. This observable returns an array of servers that is used to dinamically create the list of checkboxes the user can check and where the app is going to search at. 
 3. Subscribe to the `getMessage()` which is the method responsable for receving the data as a stream. _(More on this bellow)_
 
 When the user triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
@@ -141,7 +192,8 @@ export class FileSearchService {
     ) { }
 
   search(searchRequestModel: SearchRequestModel): void {
-    const param = new HttpParams()
+    const param: HttpParams = searchRequestModel.servers
+    .reduce((hp: HttpParams, value: string) => hp.append('servers', value), new HttpParams())
     .set('rootPath', searchRequestModel.rootPath)
     .set('searchTerm', searchRequestModel.searchTerm);
     const eventSource = new EventSource(`/api/file/search?${param.toString()}`);
@@ -159,6 +211,12 @@ export class FileSearchService {
   sendMessage(message: MessageEventModel) {
     this.subject.next(message);
   }
+
+  getMessage(): Observable<MessageEventModel> {
+    return this.subject.asObservable();
+  }
+
+}
 ```
 search-result-list.component.ts
 ```typescript
@@ -172,7 +230,7 @@ import { SearchResponseModel } from '../model/search-response.model';
 })
 export class SearchResultListComponent implements OnInit {
 
-  displayedColumns: string[] = ['position', 'filePath', 'count'];
+  displayedColumns: string[] = ['position', 'filePath', 'count', 'servers'];
   @Input() dataSource: Array<SearchResponseModel> = [];
 
   constructor() {}
@@ -182,101 +240,11 @@ export class SearchResultListComponent implements OnInit {
 }
 ```
 
-## Considerations about the stream of data:
-
-One of the main problems about streamming of data relates to the the capacity of clients/consumers to process the volume of incoming data. In this app, when searching a folder with many files and folders deep, if no **backpressure** mechanism is introduced the browser will probably crash. In order to release the pressure to the browser a delayed of 100 miliseconds where introduced and it allowed the browser to handle the incoming data properly.
-
-## Considerations about the Server Side Event
-
-Server side events have a peculiarity that it only accepts `GET` methods.
-A class called `MessageEvent` was introduced to wrap the type of data that is incoming from the backend.
-
-```java
-@RequiredArgsConstructor
-@Getter
-public class MessageEvent<T extends Data> {
-
-    public static final String SUCCESS = "success";
-    public static final String ERROR = "error";
-
-    private final String type;
-    private final T data;
-
-    public static final MessageEvent success(Data data) {
-        return new MessageEvent<>(SUCCESS, data);
-    }
-
-    public static final MessageEvent error(Data data){
-        return new MessageEvent<>(ERROR, data);
-    }
-}
-```
-
-- Sucess data is typed as 'success' and the data injected to the `data` parameter will be of class `SearchResponse`.
-```java
-@ToString
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor(staticName = "of")
-public class SearchResponse implements Serializable, Data {
-
-    private String filePath;
-    private long count;
-}
-```
-- Erro data is typed as `error` and the data inject to the `data`parameter will be of class `ErrorResponse`
-```
-@Getter
-@AllArgsConstructor
-public class ErrorResponse implements Data {
-
-    private String message;
-    private String status;
-
-}
-```
-
-## Stringboot Webflux for the datastreaming
-
-Spring framework has a streaming API called webflux. It was used in the `FileSearchController.java` to produce the expected data flow.
-
-```java
-@Slf4j
-@RequiredArgsConstructor
-@RestController
-@RequestMapping("/file")
-public class FileSearchController {
-
-    private final SearchService searchService;
-
-    @GetMapping(
-            value = "/search", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<MessageEvent> search(
-            @RequestParam(value = "rootPath") String rootPath,
-            @RequestParam(value = "searchTerm") String searchTerm,
-            ServerHttpRequest request) {
-        return Flux.fromStream(searchService
-                .search(SearchRequest.of(request.getURI().getHost(), rootPath, searchTerm)))
-                .map(MessageEvent::success)
-                .delayElements(Duration.of(100L, ChronoUnit.MILLIS));
-    }
-
-    @ExceptionHandler(BusinessException.class)
-    public Flux<MessageEvent> handleBusinessException(BusinessException ex) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.TEXT_EVENT_STREAM);
-        return Flux.just(MessageEvent
-                .error(new ErrorResponse(ex.getMessage(), BAD_REQUEST.toString())));
-    }
-
-}
-```
-
-Observe that `MediaType.TEXT_EVENT_STREAM_VALUE` is produced. SSE expects this media type. Since we receive a text strem this stream needs to be parsed to the a JSON. `JSON.parse(event.data)` was used for this purpose.
+SSE receives data as `text/event-stream` media type. This text needs to be parsed to JSON by calling `JSON.parse(event.data)`.
 
 ## Erro handling
 
-From the busness perspective, an erro could be thrown in two situation: 
+From the busness perspective, an erro could be thrown in three situation: 
 
 1. If the server was not `localhost`; and
 2. If the path to be searched does not exist in the filesystem.
