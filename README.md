@@ -163,20 +163,28 @@ search-form.component.html
 <app-search-result-list [dataSource]="dataSource"></app-search-result-list>
 ```
 
-The `search-form.component` has a form with three fields: 
+The `search-form.component` is a form with three fields: 
 
-- **Path to search at:** File path to search at the selected server. 
-- **Search Term:** word or phrase to serch for.
-- **Server(s) to search at:** Checkbox to select the server(s) to search at. There is an endpoint to the backend that gets the list of avaiable.
+- **Path to search at:** Path to search at the selected server(s). 
+- **Search Term:** Word or phrase to search for.
+- **Server(s) to search at:** Checkbox(es) with the name of server(s) to search at.
 
-On the `ngInit` lifecycle hook is where the magic happend. Three actions are executed inside of it:
-2. Create a reactive form by calling `this.createForm()`. This method uses `formBuilder` to initialize the reactive `formGroup`. 
-1. Subcribe to `getServers()` which is the method responsable for getting the list of avaiable servers. This observable returns an array of servers that is used to dinamically create the list of checkboxes the user can check and where the app is going to search at. 
-3. Subscribe to the `getMessage()` which is the method responsable for receving the data as a stream. _(More on this bellow)_
+Three actions are executed inside `ngInit` lifecycle hook:
+1. The `this.createForm()` creates angular's reactive form. 
+2. By subscribing at `getServers()` we fetch the list of avaiable server(s) we are able to search. This array of servers is used to create the checkboxes we can check to search at. 
+3. By subscribing at `getMessage()` we are will be able to receive the incoming messages streamed as Server Side Event. _(More on this bellow)_
 
-When the user triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection. 
+## File Search Service
 
-The `onmessage` method from the `eventSource` attribute receives the data from the backend and updates the `dataSource` used by the `mat-table`. A `subject` was created and transformed into an observable. On every message received the incomming message is concatenated into the `dataSource` array that is consumed by `search-result-list.component`.
+When the we triggers the search button the app calls the `search` method from `file-search-service` who uses an instance of `EventSource` to enable the browser to receive automatic updates from a server via HTTP connection (SSE). 
+
+EventSource has two main functions: `onmessage` and `onerror`.
+
+ The `onmessage` function receives the data from the backend. Data can be of two types: `success` or `error`
+
+ If a `success` data is received from the by the `onmessage` function the `dataSource` array is udated and the data is rendered by the `mat-table`.
+
+ If a `error`data is received from the `onmessage` function the a modal dialog is presented withe the error message receibed as message. 
 
 file-search.service.ts
 ```typescript
@@ -208,10 +216,6 @@ export class FileSearchService {
     };
   }
 
-  sendMessage(message: MessageEventModel) {
-    this.subject.next(message);
-  }
-
   getMessage(): Observable<MessageEventModel> {
     return this.subject.asObservable();
   }
@@ -240,95 +244,14 @@ export class SearchResultListComponent implements OnInit {
 }
 ```
 
-SSE receives data as `text/event-stream` media type. This text needs to be parsed to JSON by calling `JSON.parse(event.data)`.
-
 ## Erro handling
 
-From the busness perspective, an erro could be thrown in three situation: 
+Errors are handled in two situation: 
 
-1. If the server was not `localhost`; and
-2. If the path to be searched does not exist in the filesystem.
+1. If the path does not exist in the filesystem of one of the selected server(s).
+2. If one of the selected server(s) is offline.
 
-To handle such errors class called `BusinessException` was created. This exception was handled in the `FileSearchController.java` by annotatting `handleBusinessException(BusinessException ex)` with `@ExceptionHandler(BusinessException.class)`. The error handling function will produce a single instance of `ErrorResponse` with the `message` produced by the `BusinessException`. In the frontend the erro message is presented to the user using the `DialogAlertComponent`.
-
-## Google guava for the rescue in the file search in the backend.
-
-While developing the file search in the backend I faced situations where I was not able to handle exceptions properly. I developed two other implementations of the file search, one using `Files.walk` and `Files.walkfiletree`. 
-
-1. At first I used `Files.walk` who eventually might throws `java.io.UncheckedIOException: java.nio.file.AccessDeniedException:` which can't be catched by a `try-catch` block. I, therefore, dropped this implementation.
-
-2. Then, I tried using `Files.walkfiletree`. However, in this implementation I was not able to properly return a stream of data out of it. This implementation was also dropped.
-
-3. My third and final implementation used google guava toolbox to search the files of a given directory. With google guava I was able to handle erros properly. Here is the code:
-
-```java
-@Slf4j
-@Service
-public class FileSearchService implements SearchService {
-
-    @Override
-    public Stream<SearchResponse> search(SearchRequest searchRequest) {
-        try {
-            File file = Paths.get(searchRequest.getRootPath()).toFile();
-            Validation.execute(ServerValidationRule.of(searchRequest.getHost()));
-            Validation.execute(IsValidPath.of(file));
-            return StreamSupport
-                    .stream(Files.fileTraverser()
-                            .breadthFirst(file).spliterator(), true)
-                    .filter(f -> f.isFile() && f.canRead())
-                    .map(f -> this.searchFileContent(f, searchRequest.getSearchTerm()))
-                    .sorted(Comparator.comparing(SearchResponse::getFilePath));
-        } catch (Exception e) {
-            throw new BusinessException(MessageProperty.INVALID_PATH
-                    .bind(searchRequest.getRootPath()));
-        }
-    }
-
-    private SearchResponse searchFileContent(File file, String searchTerm) {
-        SearchResponse response;
-        try (BufferedReader br = Files.newReader(file, Charset.defaultCharset())) {
-            response = SearchResponse.of(
-                    file.getAbsolutePath(),
-                    countWordsInFile(searchTerm, br.lines()));
-        } catch (Exception e) {
-            response = SearchResponse.of(
-                    file.getAbsolutePath(),
-                    0);
-        }
-        log.debug(response.toString());
-        return response;
-    }
-
-    private int countWordsInFile(String searchTerm, Stream<String> linesStream) {
-        return linesStream
-                .parallel()
-                .map(line -> countWordsInLine(line, searchTerm))
-                .reduce(0, Integer::sum);
-    }
-
-    private int countWordsInLine(String line, String searchTerm) {
-        Pattern pattern = Pattern.compile(searchTerm.toLowerCase());
-        Matcher matcher = pattern.matcher(line.toLowerCase());
-
-        int count = 0;
-        int i = 0;
-        while (matcher.find(i)) {
-            count++;
-            i = matcher.start() + 1;
-        }
-        return count;
-    }
-}
-
-```
-
-## Testing for the backend
-
-Most of the main functionalities were tested using JUnit5. Some functionalities used Mokito and other Restassured.
-
-## Swagger for API documentation
-
-The project was integrated to swagger which allowed to document the REST APIs and also test it while developing.
+Error handled by the backend will produce messages of type `error` and data of class `ErrorResponse`. In the frontend the erro message is presented to the user using the `DialogAlertComponent`.
 
 ## How to run the APP
 
