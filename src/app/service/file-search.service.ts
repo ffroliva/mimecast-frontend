@@ -34,10 +34,6 @@ export class FileSearchService {
     };
   }
 
-  sendMessage(message: MessageEventModel) {
-    this.subject.next(message);
-  }
-
   getMessage(): Observable<MessageEventModel> {
     return this.subject.asObservable();
   }
