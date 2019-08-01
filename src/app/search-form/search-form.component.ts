@@ -61,13 +61,13 @@ export class SearchFormComponent implements OnInit, OnDestroy {
       server: ['', Validators.required],
       rootPath: ['', Validators.required],
       searchTerm: ['', Validators.required],
-      servers: new FormArray([], this.minSelectedCheckboxes(1))
+      servers: new FormArray([], Validators.compose([Validators.required, this.minSelectedCheckboxes(1)]))
     });
   }
 
   search(event: Event) {
     event.preventDefault();
-    const requestModel = this.createSerchRequestModel();
+    const requestModel = this.createSearchRequestModel();
     this.loading = true;
     this.dataSource = [];
     this.fileSearchService.search(requestModel);
@@ -80,7 +80,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  private createSerchRequestModel(): SearchRequestModel {
+  private createSearchRequestModel(): SearchRequestModel {
     const servers = this.getSelectedServers();
     const rootPath = this.formGroup.controls.rootPath.value;
     const searchTerm = this.formGroup.controls.searchTerm.value;
