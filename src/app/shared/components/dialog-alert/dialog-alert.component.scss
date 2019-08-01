@@ -1,5 +1,5 @@
-@import 'colors';
-@import 'animations';
+@import "~src/sass/colors";
+@import '~src/sass/animations';
 
 @include app-animation-bounce {
 
