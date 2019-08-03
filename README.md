@@ -11,7 +11,7 @@ This app searches and count the number of matches of a given terms is found in f
 
 ## How it workes
 
-The application starting point is the `search-form.component`.
+`search-form.component` is the application's starting point.
 
 ```typescript
 @Component({
@@ -25,6 +25,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
   error: any;
   subscription: Subscription;
   dataSource: Array<SearchResponseModel> = [];
+  count = 0;
   loading = false;
 
   constructor(
@@ -48,13 +49,22 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     .getMessage()
     .subscribe(message => {
       if (message && message.type === 'success') {
-        this.dataSource = this.dataSource.concat(message.data);
+        if (this.dataSource.length < 50) {
+          this.dataSource = [message.data, ...this.dataSource];
+        } else {
+          this.dataSource.pop();
+          this.dataSource = [message.data, ...this.dataSource];
+        }
       } else  if (message && message.type === 'error') {
         this.dialogService.showAlert(message.data.message);
       } else {
         this.loading = false;
       }
+      this.count++;
       this.changeDetectorRefs.detectChanges();
+      if ( this.count % 50 === 0 ) {
+        console.log(`Reached threshold of ${this.count} files searched.`);
+      }
     });
   }
 
@@ -86,7 +96,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  private createSerchRequestModel(): SearchRequestModel {
+  private createSearchRequestModel(): SearchRequestModel {
     const servers = this.getSelectedServers();
     const rootPath = this.formGroup.controls.rootPath.value;
     const searchTerm = this.formGroup.controls.searchTerm.value;
@@ -123,7 +133,6 @@ export class SearchFormComponent implements OnInit, OnDestroy {
   }
 }
 
-
 ```
 search-form.component.html
 ```html
@@ -155,12 +164,12 @@ search-form.component.html
             </ng-container>
         </mat-card-content>
         <mat-card-actions>
-            <button type="submit" mat-raised-button color="primary" disabled="formGroup.invalid">SEARCH</button>
+            <button type="submit" mat-raised-button color="primary" >SEARCH</button>
         </mat-card-actions>
         <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
     </mat-card>
 </form>
-<app-search-result-list [dataSource]="dataSource"></app-search-result-list>
+<app-search-result-list [dataSource]="dataSource" [count]="count"></app-search-result-list>
 ```
 
 The `search-form.component` is a form with three fields: 
@@ -170,9 +179,9 @@ The `search-form.component` is a form with three fields:
 - **Server(s) to search at:** Checkbox(es) with the name of server(s) to search at.
 
 Three actions are executed inside `ngInit` lifecycle hook:
-1. The `this.createForm()` creates angular's reactive form. 
-2. By subscribing at `getServers()` we fetch the list of avaiable server(s) we are able to search. This array of servers is used to create the checkboxes we can check to search at. 
-3. By subscribing at `getMessage()` we are will be able to receive the incoming messages streamed as Server Side Event. _(More on this bellow)_
+1. `this.createForm()` creates angular's reactive form. 
+2. Subscribing at `getServers()` we fetch the list of avaiable server(s) we are able to search. This array of servers is used to create the checkboxes we can check to search at. 
+3. Subscribing at `getMessage()` will be able to receive the incoming messages streamed as Server Side Event. _(More on this bellow)_
 
 ## File Search Service
 
@@ -184,7 +193,7 @@ EventSource has two main functions: `onmessage` and `onerror`.
 
  If a `success` data is received from the by the `onmessage` function the `dataSource` array is udated and the data is rendered by the `mat-table`.
 
- If a `error`data is received from the `onmessage` function the a modal dialog is presented withe the error message receibed as message. 
+ If a `error`data is received from the `onmessage` function the a modal dialog is presented with the error message received from the backend. 
 
 file-search.service.ts
 ```typescript
@@ -310,8 +319,12 @@ Another option would be run the following command line in your terminal: `java -
 
 ## Testing the backend
 
-In order to test the backend you can use the following command: `curl 'http://localhost:8080/file/search?rootPath=/tmp&searchTerm=aaa'`
+In order to test the backend you can use the following command: `curl 'http://localhost:8080/file/search?servers=http://localhost:8080&rootPath=/tmp&searchTerm=aa'`
 
-> In my case I am using linux machine who has a _/tmp_ path. Make sure you change the `rootPath` request parameter to a valid path inside the OS where the backend is running.
+> In my case I am using linux machine who has a _/tmp_ path. Make sure you change the `rootPath` request parameter to a valid path inside the OS where the backend server is running.
+
+## Considerations about how dataSource is presented
+
+Every new `success` message that is received from the backend is appended to the `dataSource` array to be presented to the user. When a threshold of 50 files has been searched we fix `dataSource` on this size and start removing the older resolt from the list and appending the new item on top of the array. This strategy was defined so the browser won't crash due to lack of memory management.
 
 ## Developed by Flávio Oliva

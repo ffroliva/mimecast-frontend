@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray, ValidatorFn, FormControl } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { SearchRequestModel } from '../model/search-request.model';
@@ -19,6 +19,7 @@ export class SearchFormComponent implements OnInit, OnDestroy {
   error: any;
   subscription: Subscription;
   dataSource: Array<SearchResponseModel> = [];
+  count = 0;
   loading = false;
 
   constructor(
@@ -42,13 +43,22 @@ export class SearchFormComponent implements OnInit, OnDestroy {
     .getMessage()
     .subscribe(message => {
       if (message && message.type === 'success') {
-        this.dataSource = this.dataSource.concat(message.data);
+        if (this.dataSource.length < 50) {
+          this.dataSource = [message.data, ...this.dataSource];
+        } else {
+          this.dataSource.pop();
+          this.dataSource = [message.data, ...this.dataSource];
+        }
       } else  if (message && message.type === 'error') {
         this.dialogService.showAlert(message.data.message);
       } else {
         this.loading = false;
       }
+      this.count++;
       this.changeDetectorRefs.detectChanges();
+      if ( this.count % 50 === 0 ) {
+        console.log(`Reached threshold of ${this.count} files searched.`);
+      }
     });
   }
 
